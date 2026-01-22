@@ -2,5 +2,7 @@ pandas
 scikit-learn
 joblib
 numpy
+streamlit
+flask
 gunicorn
 python-dotenv
