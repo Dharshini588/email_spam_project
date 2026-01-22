@@ -3,5 +3,4 @@ scikit-learn
 joblib
 numpy
 gunicorn
-
-
+python-dotenv
