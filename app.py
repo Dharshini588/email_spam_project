@@ -1,63 +1,70 @@
-import streamlit as st
+from flask import Flask, request, render_template
 import joblib
-from pathlib import Path
+import re
+import os
 
-# 1. Load your saved model and vectorizer (use the actual filenames in this repo)
-MODEL_PATH = Path("../spam_model.pkl").resolve() if Path("model.pkl").parent.name == 'main.py' else Path("spam_model.pkl")
-VECT_PATH = Path("vectorizer.pkl")
+app = Flask(__name__)
 
-try:
-    model = joblib.load(str(MODEL_PATH))
-    vectorizer = joblib.load(str(VECT_PATH))
-except FileNotFoundError:
-    st.error(f"Error: Could not find '{MODEL_PATH.name}' or '{VECT_PATH.name}'. Run retrain scripts first.")
-    st.stop()
-except Exception as e:
-    st.error(f"Error loading resources: {e}")
-    st.stop()
+# Load model and vectorizer
+model = joblib.load('spam_model.pkl')
+vectorizer = joblib.load('vectorizer.pkl')
 
-# 2. Create the Title and Description
-st.title("📧 Email Spam Detector")
-st.write("Paste an email below to see if it's spam or safe.")
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r'[^\w\s]', '', text)
+    return text
 
-# 3. Create a Text Box for the user
-user_input = st.text_area("Enter email text here:", height=150)
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    prediction = None
+    confidence = None
+    batch_results = None
+    rating = None
+    contact_success = False
+    text_value = ''
+    if request.method == 'POST':
+        # Handle contact form
+        if 'contact_submit' in request.form:
+            name = request.form.get('contact_name')
+            email = request.form.get('contact_email')
+            message = request.form.get('contact_message')
+            # Here you could add logic to store or send the message
+            contact_success = True
+        # Handle rating form
+        if 'rate' in request.form and 'rating' in request.form:
+            rating = int(request.form['rating'])
+        # Handle batch file upload
+        if 'file' in request.files and request.files['file'].filename:
+            file = request.files['file']
+            if file and file.filename.endswith('.txt'):
+                lines = file.read().decode('utf-8', errors='ignore').splitlines()
+                batch_results = []
+                for line in lines:
+                    clean_email = clean_text(line)
+                    email_vector = vectorizer.transform([clean_email])
+                    pred = model.predict(email_vector)[0]
+                    conf = None
+                    if hasattr(model, 'predict_proba'):
+                        probs = model.predict_proba(email_vector)[0]
+                        conf = dict(zip(model.classes_, probs))
+                    label = pred.upper()
+                    if label == 'HAM':
+                        label = 'NOT SPAM'
+                    batch_results.append({'email': line, 'prediction': label, 'confidence': conf})
+        elif 'email' in request.form:
+            email = request.form['email']
+            text_value = email
+            clean_email = clean_text(email)
+            email_vector = vectorizer.transform([clean_email])
+            pred = model.predict(email_vector)[0]
+            label = pred.upper()
+            if label == 'HAM':
+                label = 'NOT SPAM'
+            prediction = label
+            if hasattr(model, 'predict_proba'):
+                probs = model.predict_proba(email_vector)[0]
+                confidence = dict(zip(model.classes_, probs))
+    return render_template('index.html', prediction=prediction, confidence=confidence, batch_results=batch_results, rating=rating, contact_success=contact_success, text_value=text_value)
 
-# 4. Create a Button to click
-if st.button("Check Email"):
-    if user_input:
-        # 5. Transform the text (just like you did in your notebook)
-        data = [user_input]
-        vectorized_data = vectorizer.transform(data)
-
-        # 6. Make the prediction
-        try:
-            result = model.predict(vectorized_data)
-        except Exception as e:
-            st.error(f"Prediction failed: {e}")
-            raise
-
-        # 7. Show the result robustly (support string labels like 'spam'/'ham')
-        label = result[0]
-        if isinstance(label, bytes):
-            try:
-                label = label.decode()
-            except Exception:
-                pass
-
-        if str(label).lower() in ("spam", "1", "true", "t"):
-            st.header("🚨 This is SPAM!")
-        else:
-            st.header("✅ This is Safe (Ham).")
-        # show probabilities if available
-        if hasattr(model, "predict_proba"):
-            try:
-                probs = model.predict_proba(vectorized_data)[0]
-                prob_map = dict(zip(model.classes_, probs))
-                st.write("**Confidence:**")
-                for lbl, p in sorted(prob_map.items(), key=lambda kv: kv[1], reverse=True):
-                    st.write(f"- {lbl}: {p*100:5.2f}%")
-            except Exception:
-                st.info("No probability estimates available for this model.")
-    else:
-        st.warning("Please enter some text first.")
+if __name__ == '__main__':
+    app.run(debug=True)
