@@ -205,6 +205,8 @@
         
         .rating-stars {
             display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
             gap: 10px;
             margin-top: 10px;
         }
@@ -221,15 +223,16 @@
             width: auto;
         }
         
-        .rating-stars label:hover,
-        .rating-stars label:hover ~ label,
-        .rating-stars input[type="radio"]:checked ~ label {
-            color: #ffd700;
+        .rating-stars input[type="radio"]:checked,
+        .rating-stars input[type="radio"]:checked ~ input[type="radio"] {
+            & ~ label {
+                color: #ffd700;
+            }
         }
         
-        .rating-stars {
-            flex-direction: row-reverse;
-            justify-content: flex-end;
+        .rating-stars label:hover,
+        .rating-stars label:hover ~ label {
+            color: #ffd700;
         }
         
         .footer {
@@ -295,7 +298,7 @@
                 {% for result in batch_results %}
                 <div class="batch-item {% if result.prediction == 'SPAM' %}spam{% else %}not-spam{% endif %}">
                     <strong>{{ result.prediction }}</strong>
-                    <p>{{ result.email[:100] }}{% if result.email|length > 100 %}...{% endif %}</p>
+                    <p>{{ result.email[:100]|e }}{% if result.email|length > 100 %}...{% endif %}</p>
                     {% if result.confidence %}
                     <small style="color: #666;">
                         {% for class_name, prob in result.confidence.items() %}
