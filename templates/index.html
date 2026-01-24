@@ -223,11 +223,9 @@
             width: auto;
         }
         
-        .rating-stars input[type="radio"]:checked,
-        .rating-stars input[type="radio"]:checked ~ input[type="radio"] {
-            & ~ label {
-                color: #ffd700;
-            }
+        .rating-stars input[type="radio"]:checked ~ label,
+        .rating-stars input[type="radio"]:checked ~ input[type="radio"] ~ label {
+            color: #ffd700;
         }
         
         .rating-stars label:hover,
