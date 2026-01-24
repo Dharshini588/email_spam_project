@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Spam Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+        
+        .section h2 {
+            color: #764ba2;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        textarea, input[type="text"], input[type="email"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+        
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .spam {
+            background: #ffe6e6;
+            border-left: 5px solid #ff4444;
+        }
+        
+        .not-spam {
+            background: #e6ffe6;
+            border-left: 5px solid #44ff44;
+        }
+        
+        .result h3 {
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .spam h3 {
+            color: #cc0000;
+        }
+        
+        .not-spam h3 {
+            color: #009900;
+        }
+        
+        .confidence {
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        
+        .confidence-bar {
+            background: #ddd;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+        
+        .batch-results {
+            margin-top: 20px;
+        }
+        
+        .batch-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: white;
+            border: 2px solid #ddd;
+        }
+        
+        .batch-item.spam {
+            border-color: #ff4444;
+        }
+        
+        .batch-item.not-spam {
+            border-color: #44ff44;
+        }
+        
+        .batch-item strong {
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+        
+        .success-message {
+            background: #e6ffe6;
+            color: #009900;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #44ff44;
+        }
+        
+        .rating-stars {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .rating-stars input[type="radio"] {
+            display: none;
+        }
+        
+        .rating-stars label {
+            font-size: 2em;
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s;
+            width: auto;
+        }
+        
+        .rating-stars input[type="radio"]:checked ~ label,
+        .rating-stars input[type="radio"]:checked ~ input[type="radio"] ~ label {
+            color: #ffd700;
+        }
+        
+        .rating-stars label:hover,
+        .rating-stars label:hover ~ label {
+            color: #ffd700;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 Email Spam Detector</h1>
+        <p class="subtitle">Protect your inbox with machine learning</p>
+        
+        <!-- Single Email Classification -->
+        <div class="section">
+            <h2>Check Single Email</h2>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="email">Email Content:</label>
+                    <textarea id="email" name="email" placeholder="Paste your email content here..." required>{{ text_value }}</textarea>
+                </div>
+                <button type="submit">Analyze Email</button>
+            </form>
+            
+            {% if prediction %}
+            <div class="result {% if prediction == 'SPAM' %}spam{% else %}not-spam{% endif %}">
+                <h3>Result: {{ prediction }}</h3>
+                <p>The email has been classified as <strong>{{ prediction }}</strong>.</p>
+                {% if confidence %}
+                <div class="confidence">
+                    <p><strong>Confidence Scores:</strong></p>
+                    {% for class_name, prob in confidence.items() %}
+                    <div>
+                        <span>{{ class_name.upper() }}: {{ "%.2f"|format(prob * 100) }}%</span>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: {{ prob * 100 }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Batch Upload -->
+        <div class="section">
+            <h2>Batch Upload</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file">Upload Text File (.txt):</label>
+                    <input type="file" id="file" name="file" accept=".txt">
+                    <p style="margin-top: 8px; color: #666; font-size: 0.9em;">Upload a .txt file with one email per line</p>
+                </div>
+                <button type="submit">Analyze Batch</button>
+            </form>
+            
+            {% if batch_results %}
+            <div class="batch-results">
+                <h3>Batch Results ({{ batch_results|length }} emails analyzed)</h3>
+                {% for result in batch_results %}
+                <div class="batch-item {% if result.prediction == 'SPAM' %}spam{% else %}not-spam{% endif %}">
+                    <strong>{{ result.prediction }}</strong>
+                    <p>{{ result.email[:100]|e }}{% if result.email|length > 100 %}...{% endif %}</p>
+                    {% if result.confidence %}
+                    <small style="color: #666;">
+                        {% for class_name, prob in result.confidence.items() %}
+                        {{ class_name.upper() }}: {{ "%.1f"|format(prob * 100) }}%{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </small>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Rating System -->
+        <div class="section">
+            <h2>Rate This Tool</h2>
+            {% if rating %}
+            <div class="success-message">
+                Thank you for rating us {{ rating }} star{% if rating != 1 %}s{% endif %}!
+            </div>
+            {% endif %}
+            <form method="POST">
+                <div class="form-group">
+                    <label>How would you rate this spam detector?</label>
+                    <div class="rating-stars">
+                        <input type="radio" id="star5" name="rating" value="5">
+                        <label for="star5">★</label>
+                        <input type="radio" id="star4" name="rating" value="4">
+                        <label for="star4">★</label>
+                        <input type="radio" id="star3" name="rating" value="3">
+                        <label for="star3">★</label>
+                        <input type="radio" id="star2" name="rating" value="2">
+                        <label for="star2">★</label>
+                        <input type="radio" id="star1" name="rating" value="1">
+                        <label for="star1">★</label>
+                    </div>
+                </div>
+                <button type="submit" name="rate">Submit Rating</button>
+            </form>
+        </div>
+        
+        <!-- Contact Form -->
+        <div class="section">
+            <h2>Contact Us</h2>
+            {% if contact_success %}
+            <div class="success-message">
+                Thank you for your message! We'll get back to you soon.
+            </div>
+            {% endif %}
+            <form method="POST">
+                <div class="form-group">
+                    <label for="contact_name">Name:</label>
+                    <input type="text" id="contact_name" name="contact_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="contact_email">Email:</label>
+                    <input type="email" id="contact_email" name="contact_email" required>
+                </div>
+                <div class="form-group">
+                    <label for="contact_message">Message:</label>
+                    <textarea id="contact_message" name="contact_message" required></textarea>
+                </div>
+                <button type="submit" name="contact_submit">Send Message</button>
+            </form>
+        </div>
+        
+        <div class="footer">
+            <p>Email Spam Detection Project &copy; 2024</p>
+            <p>Powered by Machine Learning & Flask</p>
+        </div>
+    </div>
+</body>
+</html>
